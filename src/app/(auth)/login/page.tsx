@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PendingOverlay } from "@/components/pending-overlay";
 import { login, type LoginResult } from "./actions";
 
 export default function LoginPage() {
@@ -18,6 +19,7 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent>
         <form action={formAction} className="flex flex-col gap-4">
+          <PendingOverlay active={isPending} />
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" autoComplete="email" required />

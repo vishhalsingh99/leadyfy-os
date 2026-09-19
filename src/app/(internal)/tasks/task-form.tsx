@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
+import { PendingOverlay } from "@/components/pending-overlay";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,6 +56,7 @@ export function TaskForm({ action, assignees, orders, defaultValues, submitLabel
       onSubmit={form.handleSubmit(onSubmit)}
       className="flex max-w-xl flex-col gap-4"
     >
+      <PendingOverlay active={isPending} />
       <div className="flex flex-col gap-2">
         <Label htmlFor="title">Title</Label>
         <Input id="title" {...form.register("title")} />

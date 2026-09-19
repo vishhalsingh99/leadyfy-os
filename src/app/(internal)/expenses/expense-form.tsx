@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
+import { PendingOverlay } from "@/components/pending-overlay";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -46,6 +47,7 @@ export function ExpenseForm({ action, defaultValues, submitLabel }: Props) {
       onSubmit={form.handleSubmit(onSubmit)}
       className="flex max-w-xl flex-col gap-4"
     >
+      <PendingOverlay active={isPending} />
       <div className="flex flex-col gap-2">
         <Label>Category</Label>
         <Select

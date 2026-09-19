@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PendingOverlay } from "@/components/pending-overlay";
 import {
   Select,
   SelectContent,
@@ -55,6 +56,7 @@ export function ClientForm({ action, defaultValues, submitLabel }: Props) {
       onSubmit={form.handleSubmit(onSubmit)}
       className="flex max-w-xl flex-col gap-4"
     >
+      <PendingOverlay active={isPending} />
       <div className="flex flex-col gap-2">
         <Label htmlFor="companyName">Company name</Label>
         <Input id="companyName" {...form.register("companyName")} />
