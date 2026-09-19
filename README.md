@@ -46,3 +46,103 @@ payouts.
   videos.
 - **Client** — an isolated portal (`/portal`) for order progress, script and
   video approvals, invoices, and support tickets.
+
+## What's implemented
+
+- **Auth & RBAC**: real Supabase Auth login, four roles (Owner, Admin,
+  Employee, Client) plus four Employee sub-roles (Sales, Script Writer,
+  Shoot Manager, Editor), all enforced in the service layer rather than at
+  the UI level. Deactivating a user locks them out immediately even with a
+  valid session.
+- **Clients, Orders, Scripts, Creators (+ availability), Shoots, Videos,
+  Tasks** — full list/create/edit/detail flows, each scoped so a Sales rep
+  only sees their own clients/orders, a Script Writer only their assigned
+  scripts, and so on. Owner/Admin see everything.
+- **Script and video pipelines** are state machines, not free-text status
+  fields — a script can't jump from "Draft" to "Approved" skipping review,
+  and a video can't skip QA. Owner/Admin don't bypass this.
+- **Double-booking prevention** for creators (can't schedule the same
+  creator on two active shoots the same day) and duplicate-payout
+  prevention (can't approve/pay a creator twice for the same shoot).
+- **Client portal**: a separate set of screens and queries (not a filtered
+  view of the internal ones) for orders, scripts, videos, invoices, and
+  support tickets — a client can never see cost breakdowns, creator
+  identities, or other clients' data.
+- **Financial ledgers** (Payments, Expenses, Creator Payouts) and an
+  **executive dashboard** with role-branched KPIs — financial figures only
+  show for Owner/Admin, and every number is computed live from the same
+  data the list pages show (never a separately-maintained total that could
+  drift out of sync).
+- **Admin utilities**: Users & RBAC (with deactivate/reactivate), Employee
+  directory, system-wide Activity Log, in-app Notifications.
+
+## What hasn't been touched
+
+Cross-checked against the original requirements doc — these are real gaps,
+not hedging:
+
+- **No file/asset storage.** Videos have `draftAssetId`/`finalAssetId`
+  columns and there's an `Asset` table, but nothing in the UI writes to
+  them yet — there's currently no way to actually attach a Drive link (or
+  any file) to a video. This is the biggest functional hole: final delivery
+  doesn't produce a usable link today.
+- **No automatic notifications.** The `Notification` model, the bell in the
+  header, and "mark all read" all work — but nothing in the codebase
+  actually *creates* a notification when a script gets approved, a shoot is
+  coming up, a payment comes in, etc. The engine described in the spec
+  (auto-alerts on ~10 different events) isn't wired up; only the demo data
+  and the read/display side exist.
+- **No REST or GraphQL API.** Everything goes through Server Actions and
+  Server Components calling the service layer directly. That's fine for
+  this app, but there's no documented external API surface, which the
+  handover requirements call for.
+- **Employee records are read-only.** Creating a new employee also means
+  creating a new Supabase Auth login, which needs the service-role key —
+  that's currently only used by the seed script. Right now the only way to
+  add staff is to add them to the seed and re-run it.
+- **Several entity fields from the spec were left out** in favor of a
+  smaller, working schema: Creator profiles don't have photo, gender, age
+  group, or bank/UPI/portfolio details; Client records don't have WhatsApp,
+  a separate brand name, GST/Tax ID, lead source, or brand-kit assets;
+  Orders don't break out GST or support more than one assigned employee;
+  Shoots don't have separate Cameraman/Shooting Assistant fields or a
+  pre-shoot checklist / post-shoot verification step; Employees don't track
+  salary, joining date, or performance stats; Tasks have no attachments;
+  Expenses don't record who logged them or a receipt file.
+- **No calendar view.** Shoots are a sortable list/table, not the daily /
+  weekly / monthly calendar the spec describes.
+- **Never opened in an actual browser.** Every check so far was done by
+  replaying HTTP requests or testing the underlying logic directly (no
+  Playwright/browser automation was available in this environment). It
+  should work in a real browser — but that's still worth doing once before
+  trusting it fully.
+- **Not deployed.** Runs locally against the real Supabase project; nothing
+  has been pushed to Vercel or any hosting yet, and there's no backup
+  policy or deployment runbook written.
+
+## Suggested next steps
+
+Rough solo-developer estimates, smallest first:
+
+| Item | Est. effort |
+|---|---|
+| Task attachments | 1–2 hrs |
+| Expense receipt file + recorded-by user | 1–2 hrs |
+| Deployment guide / backup policy write-up | 1–2 hrs |
+| Employee provisioning (create login via Supabase Admin API) | 2–3 hrs |
+| Storage abstraction + Drive-link paste UI for videos | 2–3 hrs |
+| Deploy to Vercel + point at production Supabase | 2–3 hrs |
+| Extended Client fields (WhatsApp, brand name, GST, source, brand kit) | 2–3 hrs |
+| Extended Order fields (GST breakdown, multi-employee assignment) | 2–3 hrs |
+| Extended Creator profile fields (photo, demographics, bank/UPI, portfolio) | 3–4 hrs |
+| Employee directory extras (salary, joining date, performance stats) | 3–4 hrs |
+| Automatic notification triggers (~10 event types across services) | 3–4 hrs |
+| Thin REST API layer over the existing services | 4–6 hrs |
+| Extended Shoot fields + pre-shoot checklist / post-shoot verification | 4–5 hrs |
+| Real browser test pass (Playwright smoke suite) | 3–4 hrs |
+| Calendar view for shoots (daily/weekly/monthly) | 1–2 days |
+
+Total to close every known gap: roughly **2–3 working weeks** for one
+person, most of it in the calendar view and the wider schema/UI changes
+(Creator, Shoot, Client, Order fields) rather than in any single hard
+problem.
