@@ -13,7 +13,11 @@ const ROLE_LABELS: Record<string, string> = {
 
 export async function Topbar({ actor }: { actor: Actor }) {
   const subLabel = actor.employeeRole ? ` · ${actor.employeeRole.replaceAll("_", " ")}` : "";
-  const notifications = await listNotifications(actor);
+  // Notifications are supplementary, not critical path — a transient DB
+  // hiccup here shouldn't take down the whole page's render (which is
+  // exactly what was happening: an uncaught error mid-render here was
+  // surfacing downstream as a confusing React hooks-mismatch error).
+  const notifications = await listNotifications(actor).catch(() => []);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-6">
