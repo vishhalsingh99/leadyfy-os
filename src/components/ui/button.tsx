@@ -43,12 +43,21 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  nativeButton,
+  render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      render={render}
+      // Every `render` usage in this app swaps in a <Link> (an <a>, not a
+      // <button>) — Base UI's internal hook logic branches on this flag, so
+      // leaving it at the true default while rendering a non-button element
+      // causes a hook-count mismatch between renders. Callers can still
+      // override explicitly if they ever render a real button via `render`.
+      nativeButton={nativeButton ?? (render ? false : true)}
       {...props}
     />
   )

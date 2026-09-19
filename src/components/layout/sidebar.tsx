@@ -20,6 +20,13 @@ export function Sidebar({ role }: { role: SystemRole }) {
             <Link
               key={item.href}
               href={item.href}
+              // Prefetching every sidebar link at once fires a burst of
+              // concurrent requests, each independently refreshing the
+              // Supabase session in middleware — enough concurrent refresh
+              // attempts trips Supabase's reuse-detection and kills the
+              // session. Deliberate/on-demand navigation doesn't need
+              // prefetch here.
+              prefetch={false}
               className={cn(
                 "rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
                 active && "bg-sidebar-accent text-sidebar-foreground",
