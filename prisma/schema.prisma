@@ -1,0 +1,452 @@
+// Leadyfy OS — database schema
+// Maps to spec section 9.2 "Database Normalization Blueprint".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth & roles (spec section 2)
+// ---------------------------------------------------------------------------
+
+enum SystemRole {
+  OWNER
+  ADMIN
+  EMPLOYEE
+  CLIENT
+}
+
+enum EmployeeRole {
+  SALES
+  SCRIPT_WRITER
+  SHOOT_MANAGER
+  EDITOR
+}
+
+// Sole authorization identity. Supabase Auth (auth.users) owns credentials;
+// this table owns role/authorization data and is joined to it via authUserId.
+model Profile {
+  id         String     @id @default(cuid())
+  authUserId String     @unique
+  email      String     @unique
+  name       String
+  role       SystemRole
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  employee      Employee?
+  client        Client?
+  activityLogs  ActivityLog[]
+  notifications Notification[]
+  assignedTasks Task[]         @relation("TaskAssignee")
+
+  @@map("profiles")
+}
+
+model Employee {
+  id           String       @id @default(cuid())
+  profileId    String       @unique
+  profile      Profile      @relation(fields: [profileId], references: [id])
+  employeeRole EmployeeRole
+  phone        String?
+  createdAt    DateTime     @default(now())
+
+  ordersOwned    Order[]  @relation("SalesOwner")
+  scriptsWritten Script[] @relation("ScriptAssignedTo")
+  shootsManaged  Shoot[]  @relation("ShootManager")
+  videosEdited   Video[]  @relation("EditorAssigned")
+
+  @@map("employees")
+}
+
+// ---------------------------------------------------------------------------
+// Clients & Orders (spec section 4)
+// ---------------------------------------------------------------------------
+
+enum ClientStatus {
+  LEAD
+  NEW
+  ONBOARDING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  INACTIVE
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  profileId String?  @unique // null until a portal account is provisioned
+  profile   Profile? @relation(fields: [profileId], references: [id])
+
+  // Single consistent field name end-to-end (Prisma / zod / form / JSON) —
+  // deliberately fixes the spec's called-out company/company_name mismatch.
+  companyName  String
+  contactName  String
+  contactEmail String       @unique
+  contactPhone String?
+  industry     String?
+  status       ClientStatus @default(LEAD)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  orders         Order[]
+  supportTickets SupportTicket[]
+  activityLogs   ActivityLog[]
+
+  @@map("clients")
+}
+
+enum OrderStatus {
+  NEW
+  ONBOARDING
+  IN_PRODUCTION
+  PARTIALLY_DELIVERED
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+model Order {
+  id           String    @id @default(cuid())
+  clientId     String
+  client       Client    @relation(fields: [clientId], references: [id])
+  salesOwnerId String?
+  salesOwner   Employee? @relation("SalesOwner", fields: [salesOwnerId], references: [id])
+
+  packageName String
+  videoCount  Int
+  totalValue  Decimal     @db.Decimal(12, 2)
+  status      OrderStatus @default(NEW)
+  startDate   DateTime?
+  dueDate     DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  scripts  Script[]
+  payments Payment[]
+  tasks    Task[]
+
+  @@map("orders")
+}
+
+// ---------------------------------------------------------------------------
+// Scripting & Creators (spec section 5)
+// ---------------------------------------------------------------------------
+
+enum ScriptStatus {
+  DRAFT
+  ASSIGNED
+  IN_REVIEW
+  SENT_TO_CLIENT
+  REVISION_REQUIRED
+  APPROVED
+  READY_FOR_SHOOT
+}
+
+model Script {
+  id           String    @id @default(cuid())
+  orderId      String
+  order        Order     @relation(fields: [orderId], references: [id])
+  assignedToId String?
+  assignedTo   Employee? @relation("ScriptAssignedTo", fields: [assignedToId], references: [id])
+
+  videoNumber   Int          @default(1)
+  title         String
+  content       String       @db.Text
+  language      String       @default("English")
+  status        ScriptStatus @default(DRAFT)
+  revisionCount Int          @default(0)
+  deadline      DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  shoots Shoot[]
+  videos Video[]
+
+  @@map("scripts")
+}
+
+enum CreatorAvailabilityStatus {
+  AVAILABLE
+  BOOKED
+  UNAVAILABLE
+  ON_HOLD
+}
+
+model Creator {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  city         String?
+  languages    String?
+  niches       String?
+  ratePerVideo Decimal  @db.Decimal(10, 2)
+  createdAt    DateTime @default(now())
+
+  availability CreatorAvailability[]
+  shoots       Shoot[]
+  payouts      CreatorPayout[]
+
+  @@map("creators")
+}
+
+model CreatorAvailability {
+  id        String                    @id @default(cuid())
+  creatorId String
+  creator   Creator                   @relation(fields: [creatorId], references: [id])
+  date      DateTime
+  status    CreatorAvailabilityStatus @default(AVAILABLE)
+
+  @@unique([creatorId, date])
+  @@map("creator_availability")
+}
+
+// ---------------------------------------------------------------------------
+// Shoots & Video production pipeline (spec section 6)
+// ---------------------------------------------------------------------------
+
+enum ShootStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  RESHOOT_REQUIRED
+}
+
+model Shoot {
+  id        String    @id @default(cuid())
+  scriptId  String
+  script    Script    @relation(fields: [scriptId], references: [id])
+  creatorId String
+  creator   Creator   @relation(fields: [creatorId], references: [id])
+  managerId String?
+  manager   Employee? @relation("ShootManager", fields: [managerId], references: [id])
+
+  scheduledAt DateTime
+  location    String?
+  notes       String?     @db.Text
+  status      ShootStatus @default(SCHEDULED)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  videos Video[]
+
+  @@map("shoots")
+}
+
+enum VideoPipelineStatus {
+  SCRIPT_APPROVED
+  SHOOT_PENDING
+  RAW_FOOTAGE_RECEIVED
+  VIDEO_EDITING
+  INTERNAL_QA
+  CLIENT_REVIEW
+  REVISION
+  FINAL_APPROVED
+  DELIVERED
+}
+
+model Video {
+  id       String    @id @default(cuid())
+  scriptId String
+  script   Script    @relation(fields: [scriptId], references: [id])
+  shootId  String?
+  shoot    Shoot?    @relation(fields: [shootId], references: [id])
+  editorId String?
+  editor   Employee? @relation("EditorAssigned", fields: [editorId], references: [id])
+
+  title         String
+  draftAssetId  String?
+  finalAssetId  String?
+  status        VideoPipelineStatus @default(SCRIPT_APPROVED)
+  revisionCount Int                 @default(0)
+  deadline      DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  feedback VideoFeedback[]
+
+  @@map("videos")
+}
+
+model VideoFeedback {
+  id             String   @id @default(cuid())
+  videoId        String
+  video          Video    @relation(fields: [videoId], references: [id])
+  authorClientId String?
+  comment        String   @db.Text
+  timestampSec   Int?
+  createdAt      DateTime @default(now())
+
+  @@map("video_feedback")
+}
+
+// ---------------------------------------------------------------------------
+// Tasks (spec section 8)
+// ---------------------------------------------------------------------------
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  orderId     String?
+  order       Order?   @relation(fields: [orderId], references: [id])
+  assigneeId  String?
+  assignee    Profile? @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  status    TaskStatus   @default(TODO)
+  priority  TaskPriority @default(MEDIUM)
+  dueDate   DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@map("tasks")
+}
+
+// ---------------------------------------------------------------------------
+// Financials (spec section 7.3)
+// ---------------------------------------------------------------------------
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+model Payment {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  invoiceNumber  String        @unique
+  amount         Decimal       @db.Decimal(12, 2)
+  amountPaid     Decimal       @default(0) @db.Decimal(12, 2)
+  status         PaymentStatus @default(UNPAID)
+  method         String?
+  transactionRef String?
+  dueDate        DateTime?
+  paidAt         DateTime?
+  notes          String?       @db.Text
+  createdAt      DateTime      @default(now())
+
+  @@map("payments")
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  category    String
+  description String?
+  amount      Decimal  @db.Decimal(12, 2)
+  incurredAt  DateTime
+  createdAt   DateTime @default(now())
+
+  @@map("expenses")
+}
+
+enum CreatorPayoutStatus {
+  PENDING
+  APPROVED
+  PAID
+}
+
+model CreatorPayout {
+  id         String              @id @default(cuid())
+  creatorId  String
+  creator    Creator             @relation(fields: [creatorId], references: [id])
+  shootId    String?
+  videoCount Int                 @default(1)
+  amount     Decimal             @db.Decimal(10, 2)
+  status     CreatorPayoutStatus @default(PENDING)
+  paidAt     DateTime?
+  reference  String?
+  createdAt  DateTime            @default(now())
+
+  @@map("creator_payouts")
+}
+
+// ---------------------------------------------------------------------------
+// Operational support (spec section 8)
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id])
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model SupportTicket {
+  id        String              @id @default(cuid())
+  clientId  String
+  client    Client              @relation(fields: [clientId], references: [id])
+  subject   String
+  message   String              @db.Text
+  status    SupportTicketStatus @default(OPEN)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@map("support_tickets")
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  profileId  String?
+  profile    Profile? @relation(fields: [profileId], references: [id])
+  clientId   String?
+  client     Client?  @relation(fields: [clientId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@map("activity_logs")
+}
+
+// Generic, provider-backed pointer to an external file (Drive link, etc.)
+// See lib/storage/storage-provider.ts for the abstraction this backs.
+model Asset {
+  id                String   @id @default(cuid())
+  provider          String   @default("manual-link")
+  url               String
+  fileName          String
+  mimeType          String?
+  relatedEntityType String?
+  relatedEntityId   String?
+  createdAt         DateTime @default(now())
+
+  @@map("assets")
+}
