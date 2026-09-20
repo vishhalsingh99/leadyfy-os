@@ -32,7 +32,7 @@ export default async function ActivityLogsPage() {
               <TableCell>{log.profile?.name ?? log.client?.companyName ?? "System"}</TableCell>
               <TableCell className="font-medium">{log.action.replaceAll("_", " ")}</TableCell>
               <TableCell className="text-muted-foreground">
-                {log.entityType} · {log.entityId}
+                {log.entityType} · {log.entityLabel}
               </TableCell>
               <TableCell className="text-muted-foreground">{log.createdAt.toLocaleString()}</TableCell>
             </TableRow>
