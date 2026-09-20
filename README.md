@@ -122,27 +122,27 @@ not hedging:
 
 ## Suggested next steps
 
-Rough solo-developer estimates, smallest first:
+Roughly in priority order:
 
-| Item | Est. effort |
-|---|---|
-| Task attachments | 1–2 hrs |
-| Expense receipt file + recorded-by user | 1–2 hrs |
-| Deployment guide / backup policy write-up | 1–2 hrs |
-| Employee provisioning (create login via Supabase Admin API) | 2–3 hrs |
-| Storage abstraction + Drive-link paste UI for videos | 2–3 hrs |
-| Deploy to Vercel + point at production Supabase | 2–3 hrs |
-| Extended Client fields (WhatsApp, brand name, GST, source, brand kit) | 2–3 hrs |
-| Extended Order fields (GST breakdown, multi-employee assignment) | 2–3 hrs |
-| Extended Creator profile fields (photo, demographics, bank/UPI, portfolio) | 3–4 hrs |
-| Employee directory extras (salary, joining date, performance stats) | 3–4 hrs |
-| Automatic notification triggers (~10 event types across services) | 3–4 hrs |
-| Thin REST API layer over the existing services | 4–6 hrs |
-| Extended Shoot fields + pre-shoot checklist / post-shoot verification | 4–5 hrs |
-| Real browser test pass (Playwright smoke suite) | 3–4 hrs |
-| Calendar view for shoots (daily/weekly/monthly) | 1–2 days |
+- Storage abstraction + Drive-link paste UI for videos — the biggest
+  functional hole (final delivery has no usable link today).
+- Automatic notification triggers (~10 event types across services) — the
+  read/display side already works, only the write side is missing.
+- Employee provisioning (create a real login via the Supabase Admin API)
+  instead of editing the seed script.
+- Thin REST API layer over the existing services, for the handover
+  deliverable / future integrations.
+- Real browser test pass (Playwright smoke suite) and a small unit-test
+  suite around the service layer.
+- Row Level Security as defense-in-depth on top of the existing
+  service-layer authorization.
+- Extended fields across Client, Order, Creator, Employee, Shoot (GST,
+  brand kit, demographics, bank/UPI, salary, pre/post-shoot checklists) —
+  straightforward schema/UI additions, no architectural risk.
+- Task attachments and Expense receipt files.
+- Calendar view for shoots (daily/weekly/monthly) instead of the current
+  sortable list.
+- Deployment guide / backup policy write-up.
 
-Total to close every known gap: roughly **2–3 working weeks** for one
-person, most of it in the calendar view and the wider schema/UI changes
-(Creator, Shoot, Client, Order fields) rather than in any single hard
-problem.
+None of this requires re-architecting anything already built — it's
+breadth (more fields, more screens), not a hard problem.

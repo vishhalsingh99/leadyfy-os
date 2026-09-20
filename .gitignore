@@ -45,3 +45,6 @@ next-env.d.ts
 .claude/
 AGENTS.md
 CLAUDE.md
+
+# local-only docs (interview prep, notes) — not part of the project
+*.pdf
