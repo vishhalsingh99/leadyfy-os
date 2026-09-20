@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PendingOverlay } from "@/components/pending-overlay";
 import { createPortalTicketAction, type SupportFormResult } from "./actions";
 
 export function TicketForm() {
@@ -15,6 +16,7 @@ export function TicketForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      <PendingOverlay active={isPending} />
       <div className="flex flex-col gap-2">
         <Label htmlFor="subject">Subject</Label>
         <Input id="subject" name="subject" required />

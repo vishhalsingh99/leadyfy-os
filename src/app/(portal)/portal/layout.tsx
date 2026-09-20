@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getActorOrRedirect } from "@/lib/rbac";
 import { signOut } from "@/lib/actions/auth-actions";
-import { Button } from "@/components/ui/button";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 
 const PORTAL_NAV = [
   { href: "/portal", label: "Overview" },
@@ -37,9 +37,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium">{actor.name}</span>
           <form action={signOut}>
-            <Button type="submit" variant="ghost" size="sm">
-              Sign out
-            </Button>
+            <SignOutButton />
           </form>
         </div>
       </header>

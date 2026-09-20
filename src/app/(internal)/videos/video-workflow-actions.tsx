@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { PendingOverlay } from "@/components/pending-overlay";
 import { advanceVideoStatusAction } from "./actions";
 
 export function VideoWorkflowActions({ videoId, options }: { videoId: string; options: string[] }) {
@@ -11,6 +12,7 @@ export function VideoWorkflowActions({ videoId, options }: { videoId: string; op
 
   return (
     <div className="flex flex-wrap gap-2">
+      <PendingOverlay active={isPending} />
       {options.map((status) => (
         <Button
           key={status}

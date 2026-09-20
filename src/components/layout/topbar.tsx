@@ -1,7 +1,7 @@
 import { signOut } from "@/lib/actions/auth-actions";
 import { listNotifications } from "@/lib/services/notification-service";
-import { Button } from "@/components/ui/button";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 import type { Actor } from "@/lib/rbac";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -29,9 +29,7 @@ export async function Topbar({ actor }: { actor: Actor }) {
         <NotificationsBell notifications={notifications} />
         <span className="text-sm font-medium">{actor.name}</span>
         <form action={signOut}>
-          <Button type="submit" variant="ghost" size="sm">
-            Sign out
-          </Button>
+          <SignOutButton />
         </form>
       </div>
     </header>

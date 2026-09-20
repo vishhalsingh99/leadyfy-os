@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { PendingOverlay } from "@/components/pending-overlay";
 import { approvePortalScriptAction, requestPortalScriptRevisionAction } from "./actions";
 
 export function ScriptApprovalActions({ scriptId }: { scriptId: string }) {
@@ -13,6 +14,7 @@ export function ScriptApprovalActions({ scriptId }: { scriptId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <PendingOverlay active={isPending} />
       <div className="flex gap-2">
         <Button
           disabled={isPending}

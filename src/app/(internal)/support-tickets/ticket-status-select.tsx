@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
+import { PendingOverlay } from "@/components/pending-overlay";
 import {
   Select,
   SelectContent,
@@ -18,30 +19,33 @@ export function TicketStatusSelect({ ticketId, status }: { ticketId: string; sta
   const [isPending, startTransition] = useTransition();
 
   return (
-    <Select
-      value={status}
-      disabled={isPending}
-      onValueChange={(value) =>
-        value &&
-        startTransition(async () => {
-          try {
-            await updateSupportTicketStatusAction(ticketId, value as SupportTicketStatus);
-          } catch (e) {
-            toast.error(e instanceof Error ? e.message : "Could not update status");
-          }
-        })
-      }
-    >
-      <SelectTrigger className="w-36">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {STATUSES.map((s) => (
-          <SelectItem key={s} value={s}>
-            {s.replaceAll("_", " ")}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <>
+      <PendingOverlay active={isPending} />
+      <Select
+        value={status}
+        disabled={isPending}
+        onValueChange={(value) =>
+          value &&
+          startTransition(async () => {
+            try {
+              await updateSupportTicketStatusAction(ticketId, value as SupportTicketStatus);
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Could not update status");
+            }
+          })
+        }
+      >
+        <SelectTrigger className="w-36">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>
+              {s.replaceAll("_", " ")}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
   );
 }

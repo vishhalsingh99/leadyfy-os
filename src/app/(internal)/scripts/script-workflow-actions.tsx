@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { PendingOverlay } from "@/components/pending-overlay";
 import { advanceScriptStatusAction } from "./actions";
 
 // Calls the imported Server Action directly (Next.js handles the RPC) —
@@ -14,6 +15,7 @@ export function ScriptWorkflowActions({ scriptId, options }: { scriptId: string;
 
   return (
     <div className="flex flex-wrap gap-2">
+      <PendingOverlay active={isPending} />
       {options.map((status) => (
         <Button
           key={status}

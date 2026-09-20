@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PendingOverlay } from "@/components/pending-overlay";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ export function AvailabilityQuickSet({ creatorId }: { creatorId: string }) {
 
   return (
     <div className="flex flex-wrap items-end gap-2">
+      <PendingOverlay active={isPending} />
       <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-40" />
       <Select value={status} onValueChange={(v) => v && setStatus(v)}>
         <SelectTrigger className="w-40">
