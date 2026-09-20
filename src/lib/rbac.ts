@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
@@ -36,7 +37,13 @@ export class ConflictError extends Error {
 // every service function authorizes against. Looked up by authUserId on
 // every call rather than trusted from a JWT claim, so a role change takes
 // effect immediately instead of waiting for token refresh.
-export async function getActor(): Promise<Actor | null> {
+//
+// Wrapped in React's cache() because the layout, the page, and often a
+// service call within that page each call this independently — without
+// memoization that's a Supabase auth round-trip plus a Prisma query
+// repeated 2-3x per single page load. cache() dedupes all of that down to
+// one call per request.
+export const getActor = cache(async (): Promise<Actor | null> => {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) return null;
@@ -57,7 +64,7 @@ export async function getActor(): Promise<Actor | null> {
     employeeRole: profile.employee?.employeeRole ?? null,
     clientId: profile.client?.id ?? null,
   };
-}
+});
 
 export async function getActorOrRedirect(): Promise<Actor> {
   const actor = await getActor();
